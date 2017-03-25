@@ -5,9 +5,12 @@ public class CountDownLatchExercise {
     public static void main(String[] args) {
         int limit = 7;
         int numOfSearchers = 10;
-        final CountDownLatch latch = new CountDownLatch(limit);
-        String[] grades = {"A","A","A","F","A","F","F","A","A","F","A","A","F","A","A","F","F","F","F","F","F",
-                "A","A","A","F","A","F","F","A","A","F","A","A","F","A","A","F","F","F","F","F","F","A","A","A","F","A","F","F","A","A","F","A","A","F","A","A","F","F","F","F","F","F","A","A","A","F","A","F","F","A","A","F","A","A","F","A","A","F","F","F","F","F","F"};
+        CountDownLatch latch = new CountDownLatch(limit);
+        String[] grades = {"A","A","A","F","A","F","F","A","A","F","A","A","F","A",
+                "A","F","F","F","F","F","F","A","A","A","F","A","F","F","A","A","F",
+                "A","A","F","A","A","F","F","F","F","F","F","A","A","A","F","A","F",
+                "F","A","A","F","A","A","F","A","A","F","F","F","F","F","F","A","A",
+                "A","F","A","F","F","A","A","F","A","A","F","A","A","F","F","F","F","F","F"};
         int breakpoint= grades.length/numOfSearchers;
 
         Searcher[] s = new Searcher[numOfSearchers];
@@ -17,6 +20,9 @@ public class CountDownLatchExercise {
             } else {
                 s[i] = new Searcher(i*breakpoint,(i+1)*breakpoint,grades,latch);
             }
+        }
+
+        for (int i = 0; i < numOfSearchers; i++) {
             s[i].start();
         }
 
@@ -28,12 +34,10 @@ public class CountDownLatchExercise {
         }
 
         for (int i = 0; i < numOfSearchers; i++) {
-            try {
-                s[i].join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            s[i].interrupt();
         }
+
+
     }
 
 }
@@ -51,12 +55,13 @@ class Searcher extends Thread {
     }
 
     public void run() {
-        if (latch.getCount() == 0) {
-            return;
-        } else {
-            for (int i = start; i < end; i++) {
-                if (grades[i].equals("F")) {
-                    System.out.println("Found F");
+
+        for (int i = start; i < end; i++) {
+            synchronized (latch) {
+                if (latch.getCount() == 0) {
+                    break;
+                } else if (grades[i].equals("F")) {
+                    System.out.println(this.getName() + " Found F");
                     latch.countDown();
                 }
             }
